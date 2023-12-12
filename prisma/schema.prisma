@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id          String     @id @unique @default(uuid()) @db.Uuid
+  email       String     @unique @db.VarChar(50)
+  password    String     @db.VarChar(100)
+  user_type   String     @db.VarChar(25)
+  url_foto    String?    @db.Text
+  user_status String     @db.VarChar(25)
+  updatedAt   DateTime?
+  student     students?
+  professor   professor?
+}
+
+model students {
+  id            String @id @unique @default(uuid()) @db.Uuid
+  document      String @db.VarChar(25)
+  document_type String @db.VarChar(25)
+  name          String @db.VarChar(25)
+  lastName      String @db.VarChar(25)
+  programsId    String @db.Uuid
+  usersId       String @unique @db.Uuid
+
+  program programs @relation(fields: [programsId], references: [id])
+
+  users users @relation(fields: [usersId], references: [id])
+}
+
+model professor {
+  id       String   @id @unique @default(uuid()) @db.Uuid
+  document String   @db.VarChar(25)
+  name     String   @db.VarChar(25)
+  lastName String   @db.VarChar(25)
+  program  programs @relation(fields: [programsId], references: [id])
+
+  programsId String @db.Uuid
+  users      users  @relation(fields: [usersId], references: [id])
+  usersId    String @unique @db.Uuid
+}
+
+model programs {
+  id               String             @id @unique @default(uuid()) @db.Uuid
+  name             String             @db.VarChar(50)
+  type             String             @db.VarChar(25)
+  student_outcomes student_outcomes[]
+  students         students[]
+  professor        professor[]
+}
+
+model student_outcomes {
+  id               String             @id @unique @default(uuid()) @db.Uuid
+  type             String             @db.VarChar(25)
+  description      String             @db.VarChar(250)
+  programs         programs?          @relation(fields: [programsId], references: [id])
+  programsId       String?            @db.Uuid
+  courses_outcomes courses_outcomes[]
+}
+
+model courses {
+  id               String             @id @unique @default(uuid()) @db.Uuid
+  name             String             @db.VarChar(50)
+  courses_outcomes courses_outcomes[]
+}
+
+model courses_outcomes {
+  id                 String            @id @unique @default(uuid()) @db.Uuid
+  description        String            @db.VarChar(250)
+  student_outcomesId String?           @db.Uuid
+  coursesId          String?           @db.Uuid
+  courses            courses?          @relation(fields: [coursesId], references: [id])
+  student_outcomes   student_outcomes? @relation(fields: [student_outcomesId], references: [id])
+
+  Evaluation_criteria evaluation_criteria[]
+}
+
+model evaluation_criteria {
+  id                 String            @id @unique @default(uuid()) @db.Uuid
+  description        String            @db.VarChar(250)
+  courses_outcomes   courses_outcomes? @relation(fields: [courses_outcomesId], references: [id])
+  courses_outcomesId String?           @db.Uuid
+  criteria_scale     criteria_scale[]
+  rubrics_criteria   rubrics_criteria? @relation(fields: [rubrics_criteriaId], references: [id])
+  rubrics_criteriaId String?           @db.Uuid
+}
+
+model rating_scale {
+  id             String           @id @unique @default(uuid()) @db.Uuid
+  level          String           @db.VarChar(25)
+  criteria_scale criteria_scale[]
+  minScore       Decimal
+  maxScore       Decimal
+}
+
+model criteria_scale {
+  id                    String               @id @unique @default(uuid()) @db.Uuid
+  description           String               @db.VarChar(250)
+  rating_scale          rating_scale?        @relation(fields: [rating_scaleId], references: [id])
+  rating_scaleId        String?              @db.Uuid
+  evaluation_criteria   evaluation_criteria? @relation(fields: [evaluation_criteriaId], references: [id])
+  evaluation_criteriaId String?              @db.Uuid
+}
+
+model rubrics {
+  id        String   @id @unique @default(uuid()) @db.Uuid
+  createdAt DateTime
+
+  rubrics_criteria   rubrics_criteria? @relation(fields: [rubrics_criteriaId], references: [id])
+  rubrics_criteriaId String?           @db.Uuid
+}
+
+model rubrics_criteria {
+  id                  String                @id @unique @default(uuid()) @db.Uuid
+  weight              Decimal
+  rubrics             rubrics[]
+  evaluation_criteria evaluation_criteria[]
+  outcomes            outcomes[]
+}
+
+model outcomes {
+  id                 String            @id @unique @default(uuid()) @db.Uuid
+  score              Decimal
+  comments           String?
+  rubrics_criteria   rubrics_criteria? @relation(fields: [rubrics_criteriaId], references: [id])
+  rubrics_criteriaId String?           @db.Uuid
+  assesment_moment   assesment_moment? @relation(fields: [assesment_momentId], references: [id])
+  assesment_momentId String?           @db.Uuid
+}
+
+model assesment_moment {
+  id         String     @id @unique @default(uuid()) @db.Uuid
+  totalScore Decimal
+  takenAt    DateTime
+  outcomes   outcomes[]
+}
